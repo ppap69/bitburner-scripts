@@ -1,23 +1,28 @@
 /** @param {NS} ns */
 export async function main(ns) {
-  
-   // script needs 2.3GB to run on one thread
-  
+  // sever needs 2.35 GB ram to run on one thread  
+
+  function formatRAM(inGB, decimal = 3) {
+    // https://stackoverflow.com/questions/15900485/correct-way-to-convert-size-in-bytes-to-kb-mb-gb-in-javascript 
+    // heavily modified
+    if (inGB < 1024) return (inGB).toFixed(decimal) + " GB";
+    else if (inGB < 1048576) return (inGB / 1024).toFixed(decimal) + " TB";
+    else return (inGB / 1048576).toFixed(decimal) + " PB";
+  }
+
   async function getRoot(sever) {
     var portCrackers = ["BruteSSH.exe", "FTPCrack.exe", "relaySMTP.exe", "HTTPWorm.exe", "SQLInject.exe"];
     var tools = [ns.brutessh, ns.ftpcrack, ns.relaysmtp, ns.httpworm, ns.sqlinject]
     var portsNeeded = ns.getServerNumPortsRequired(sever);
     var open = 0;
-    if(portsNeeded==0){return true}
     for (var j = 0; j < portCrackers.length && open < portsNeeded; j++) {
       if (ns.fileExists(portCrackers[j], "home")) {
         tools[j](sever);
         open++
       }
     }
-    if (open < portsNeeded) {ns.tprint("failed : "+sever); return false }
+    if (open < portsNeeded) { return false }
     ns.nuke(sever);
-    ns.tprint("opened : "+sever)
     return true
   }
 
@@ -36,15 +41,27 @@ export async function main(ns) {
 
   let neighbors = ["home"]
   let scann = await newScan(sever)
-
-  while (scann.length>0) {
+  var totalRam = 0
+  while (scann.length > 0) {
     var sever = scann[0]
+    var ram = ns.getServerMaxRam(sever)
+    if (ram > 0) {
+      totalRam += ram
+    } else {
+      neighbors.slice(neighbors.indexOf(sever), 1)
+    }
+
     var n = await newScan(sever)
     getRoot(sever)
-    for (var j = 0; j < n.length;j++) {
+    for (var j = 0; j < n.length; j++) {
       scann.push(n[j])
     }
     scann.shift()
   }
-  ns.tprint("done")
+  var str = ""
+  for (var j = 0; j < neighbors.length; j++) {
+    str += (String(neighbors[j]) + "\n")
+  }
+  ns.write("Data/severs.txt", str, "w")
+  ns.tprint("total ram : " + formatRAM(totalRam))
 }
