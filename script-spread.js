@@ -1,4 +1,5 @@
 /** @param {NS} ns */
+/** @param {NS} ns */
 export async function main(ns) {
 
   // script needs 4.5GB to run on one thread
@@ -21,7 +22,7 @@ export async function main(ns) {
 
   let neighbors = ["home"]
   let scann = await newScan(sever)
-
+  let totalThreads = 0;
   if (ns.args.length == 0) { ns.alert("have to have a file to execute for arg"); ns.exit() }
   var script = ns.args[0]
   if (!ns.fileExists(script)) { ns.alert("input file is not valid"); ns.exit() }
@@ -43,9 +44,10 @@ export async function main(ns) {
     var threadCount = Math.floor(ram / ns.getScriptRam(script, "home"));
     if (threadCount > 0) {
       affectedSevers++
+      totalThreads += threadCount
       ns.scp(script, sever, "home")
       ns.exec(script, sever, threadCount, ...scriptArgs)
     }
   }
-  ns.tprint("Scripts spread to " + affectedSevers + " severs.")
+  ns.tprint("Runing script on " + totalThreads + " total threads.")
 }
